@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 # .env 파일 경로 지정 
 load_dotenv()
+
 # audiorecorder 패키지 추가
 from audiorecorder import audiorecorder
 
@@ -38,6 +39,13 @@ def STT(speech):
     os.remove(filename)
     
     return transcription.text
+
+def ask_gpt(prompt, model):
+    response = client.chat.completions.create(
+        model=model,
+        messages=prompt
+    )
+    return response.choices[0].message.content
 
 ##### 메인 함수 #####
 def main():
@@ -117,6 +125,20 @@ def main():
     with col2:
         # 오른쪽 영역 작성
         st.subheader("질문/답변")
+
+        if  (audio.duration_seconds > 0)  and (st.session_state["check_reset"]==False):
+            # ChatGPT에게 답변 얻기
+            response = ask_gpt(st.session_state["messages"], model)
+
+            # GPT 모델에 넣을 프롬프트를 위해 답변 내용 저장
+            st.session_state["messages"] = st.session_state["messages"] + [{"role": "system", "content": response}]
+
+            # 채팅 시각화를 위한 답변 내용 저장
+            now = datetime.now().strftime("%H:%M")
+            st.session_state["chat"] = st.session_state["chat"] + [("bot", now, response)]
+
+        else:
+            st.session_state["check_reset"] = False
 
 if __name__=="__main__":
     main()
